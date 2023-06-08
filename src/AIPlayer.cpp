@@ -40,7 +40,7 @@ void AIPlayer::think(color & c_piece, int & id_piece, int & dice) const{
             valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
             break;
         case 1:
-            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
+            valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, pabloHeuristic);
             break;
         case 2:
             valor = Poda_AlfaBeta(*actual, jugador, 0, PROFUNDIDAD_ALFABETA, c_piece, id_piece, dice, alpha, beta, ValoracionTest);
@@ -301,7 +301,6 @@ double AIPlayer::ValoracionTest(const Parchis &estado, int jugador)
 {
     // Heurística de prueba proporcionada para validar el funcionamiento del algoritmo de búsqueda.
 
-
     int ganador = estado.getWinner();
     int oponente = (jugador+1) % 2;
 
@@ -332,8 +331,7 @@ double AIPlayer::ValoracionTest(const Parchis &estado, int jugador)
                 // Valoro positivamente que la ficha esté en casilla segura o meta.
                 if (estado.isSafePiece(c, j))
                 {
-                    puntuacion_jugador++;
-                }
+                    puntuacion_jugador++;                }
                 else if (estado.getBoard().getPiece(c, j).get_box().type == goal)
                 {
                     puntuacion_jugador += 5;
@@ -367,3 +365,85 @@ double AIPlayer::ValoracionTest(const Parchis &estado, int jugador)
     }
 }
 
+double AIPlayer::pabloHeuristic(const Parchis & estado, int jugador){
+    
+    // Heurística de prueba proporcionada para validar el funcionamiento del algoritmo de búsqueda.
+    int ganador = estado.getWinner();
+    int oponente = (jugador+1) % 2;
+
+    // Si hay un ganador, devuelvo más/menos infinito, según si he ganado yo o el oponente.
+    if (ganador == jugador)
+    {
+        return gana;
+    }
+    else if (ganador == oponente)
+    {
+        return pierde;
+    }
+    else
+    {
+        // Colores que juega mi jugador y colores del oponente
+        vector<color> my_colors = estado.getPlayerColors(jugador);
+        vector<color> op_colors = estado.getPlayerColors(oponente);
+
+        // Recorro todas las fichas de mi jugador
+        int puntuacion_jugador = 0;
+        // Recorro colores de mi jugador.
+        for (int i = 0; i < my_colors.size(); i++)
+        {
+            color c = my_colors[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++)
+            {   // MODIFICAR A PARTIR DE AQUI
+                if(estado.piecesAtGoal(c) > 0){
+                    puntuacion_jugador += estado.piecesAtGoal(c);
+                }
+
+                if(estado.piecesAtHome(c) > 0){
+                    puntuacion_jugador -= estado.piecesAtHome(c);
+                }
+
+                // Valoro positivamente que la ficha esté en casilla segura o meta.
+                if (estado.isSafePiece(c, j))
+                {
+                    puntuacion_jugador+=2;                }
+                else if (estado.getBoard().getPiece(c, j).get_box().type == goal)
+                {
+                    puntuacion_jugador += 5;
+                }
+            }
+        }
+
+        // Recorro todas las fichas del oponente
+        int puntuacion_oponente = 0;
+        // Recorro colores del oponente.
+        for (int i = 0; i < op_colors.size(); i++)
+        {
+            color c = op_colors[i];
+            // Recorro las fichas de ese color.
+            for (int j = 0; j < num_pieces; j++)
+            {   // MODIFICAR A PARTIR DE AQUI
+                if(estado.piecesAtGoal(c) > 0){
+                    puntuacion_jugador += estado.piecesAtGoal(c);
+                }
+
+                if(estado.piecesAtHome(c) > 0){
+                    puntuacion_jugador -= estado.piecesAtHome(c);
+                }
+
+                if (estado.isSafePiece(c, j))
+                {
+                    // Valoro negativamente que la ficha esté en casilla segura o meta.
+                    puntuacion_oponente += 2;
+                }
+                else if (estado.getBoard().getPiece(c, j).get_box().type == goal)
+                {
+                    puntuacion_oponente += 5;
+                }
+            }
+        }
+
+        // Devuelvo la puntuación de mi jugador menos la puntuación del oponente.
+        return puntuacion_jugador - puntuacion_oponente;
+    }
+}
